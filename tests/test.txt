@@ -1,2 +1,13 @@
-push,"I can read"
+push 100
+
+push 1
+subtract
+duplicate
+push 0
+bigger
+truejump 1
+
+falsejump 10
+push "I can't read"
 halt
+push "I can read"

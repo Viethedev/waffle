@@ -181,13 +181,16 @@ class WaffleStack:
         f = open(filename, "r")
         bytecodes = []
         for line in f.read().split("\n"):
-            opcode, *args = line.split(",")
-            args = [self._safeeval(el) for el in args]
-            bytecodes.append((Instruction[opcode.lower()], *args))
+            if line == "":
+                continue
+            opcode, *args = line.split(" ", maxsplit=1)
+            args = [self._parse_args(el) for el in args]
+            bytecode = (Instruction[opcode.lower()], *args)
+            bytecodes.append(bytecode)
         f.close()
         return bytecodes
 
-    def _safeeval(self, source):   
+    def _parse_args(self, source):   
         source = source.strip()
         if self.INT_PATTERN.fullmatch(source):
             return int(source)
