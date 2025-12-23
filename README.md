@@ -1,2 +1,2 @@
 # waffle
-Waffle's Stack Virtual Machine 
+Waffle Stack Virtual Machine 
