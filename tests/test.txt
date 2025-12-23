@@ -1,0 +1,2 @@
+push,"I can read"
+halt
