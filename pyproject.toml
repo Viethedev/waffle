@@ -20,6 +20,9 @@ classifiers = [
 dependencies = [
 ]
 
+[project.scripts]
+waffle = "waffle.wrun:main"
+
 [project.urls]
 "Homepage" = "https://github.com/Viethedev/waffle"
 "Repository" = "https://github.com/Viethedev/waffle"

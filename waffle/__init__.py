@@ -8,11 +8,11 @@ class Instruction(Enum):
     # Stack operations
     push = 1; pop = 2; duplicate = 3; swap = 4
     # Local variables operations
-    load = 10; store = 11
+    load = 10; store = 11; forget = 12
     # Arithmetic & logic
     add = 20; subtract = 21; multiply = 22; divide = 23; negate = 24
     # Comparison
-    equal = 30; smaller = 31; bigger = 32
+    equal = 30; less = 31; greater = 32
     # Control flow
     jump = 40; truejump = 41; falsejump = 42
     # Function calls
@@ -50,7 +50,7 @@ class WaffleStack:
         self._address = 0
         self._datastack = []
         self._framestack = []
-        self._frame = None
+        self._frame = Frame(0)
         self._running = True
 
         self._dispatch = {
@@ -60,14 +60,15 @@ class WaffleStack:
             Instruction.swap: self._swap,
             Instruction.load: self._load,
             Instruction.store: self._store,
+            Instruction.forget: self._forget,
             Instruction.add: self._add,
             Instruction.subtract: self._subtract,
             Instruction.multiply: self._multiply,
             Instruction.divide: self._divide,
             Instruction.negate: self._negate,
             Instruction.equal: self._equal,
-            Instruction.smaller: self._smaller,
-            Instruction.bigger: self._bigger,
+            Instruction.less: self._less,
+            Instruction.greater: self._greater,
             Instruction.jump: self._jump,
             Instruction.truejump: self._truejump,
             Instruction.falsejump: self._falsejump,
@@ -96,6 +97,9 @@ class WaffleStack:
 
     def _store(self, key):
         self._frame.locals[key] = self._pop()
+
+    def _forget(self, key):
+        del self._frame.locals[key]
 
     # ===== Arithmetic =====
     def _add(self):
@@ -127,12 +131,12 @@ class WaffleStack:
         a = self._pop()
         self._push(a == b)
 
-    def _smaller(self):
+    def _less(self):
         b = self._pop()
         a = self._pop()
         self._push(a < b)
 
-    def _bigger(self):
+    def _greater(self):
         b = self._pop()
         a = self._pop()
         self._push(a > b)
@@ -158,37 +162,54 @@ class WaffleStack:
     def _goback(self):
         finished = self._frame
         self._frame = self._framestack.pop()
-        self._address = finished.origin
+        self._address = finished.origin  
 
     # ===== Lifecycle =====
     def _halt(self):
         self._running = False
 
     # ===== Execution =====
-    def execute(self, bytecodes):
+    def execute(self, bytecodes, debugmode=False):
         self._address = 0
         self._running = True
         self._datastack.clear()
         self._framestack.clear()
         self._frame = Frame(0)
-
-        while self._running and self._address < len(bytecodes):
-            op, *args = bytecodes[self._address]
-            self._dispatch[op](*args)
-            self._address += 1
+        if debugmode:
+            print("Address    Instr       Arguments        Datastack                  Locals") 
+            while self._running and self._address < len(bytecodes):
+                op, *args = bytecodes[self._address]
+                print(f"{str(self._address): <11}{str(op.name): <12}{str(args[0]) if args != [] else '': <17}", end = "")
+                self._dispatch[op](*args)
+                self._address += 1
+                print(f"{"".join([f'{v} ' for v in self.datastack]): <27}{str(self.current_frame.locals)}")
+        else:
+             while self._running and self._address < len(bytecodes):
+                op, *args = bytecodes[self._address]
+                self._dispatch[op](*args)
+                self._address += 1
 
     def read(self, filename: str):
         f = open(filename, "r")
         bytecodes = []
         for line in f.read().split("\n"):
-            if line == "":
+            codeline = line.split(";")[0]
+            if codeline == "":
                 continue
-            opcode, *args = line.split(" ", maxsplit=1)
+            opcode, *args = codeline.split(maxsplit=1)
             args = [self._parse_args(el) for el in args]
             bytecode = (Instruction[opcode.lower()], *args)
             bytecodes.append(bytecode)
         f.close()
         return bytecodes
+
+    def interpret(self, line):
+        codeline = line.split(";")[0]
+        if codeline == "":
+            pass
+        opcode, *args = codeline.split(maxsplit=1)
+        args = [self._parse_args(el) for el in args]
+        self._dispatch[Instruction[opcode.lower()]](*args)
 
     def _parse_args(self, source):   
         source = source.strip()
@@ -207,3 +228,4 @@ class WaffleStack:
     @property
     def current_frame(self):
         return self._frame
+
